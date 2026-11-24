@@ -79,6 +79,9 @@
     l = l.replace(re, '$1');
     // ¥ is often read as "Y" or "\" right before digits.
     l = l.replace(/(^|[\s:(])[Y\\](?=\s?\d)/g, '$1¥');
+    // OCR often splits thousands: "1, 540", "1 ,540", "1. 540", or "¥1 540" → 1,540
+    l = l.replace(/(\d)\s*[,.]\s+(?=\d{3}(?!\d))/g, '$1,').replace(/(\d)\s+[,.]\s*(?=\d{3}(?!\d))/g, '$1,');
+    l = l.replace(/([¥$€£]\s?\d{1,3})\s(?=\d{3}(?![\d.,]))/g, '$1,').replace(/(\d{1,3})\s(?=\d{3}\s?円)/g, '$1,');
     return l.replace(/\s+/g, ' ').trim();
   }
 

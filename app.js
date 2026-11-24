@@ -90,7 +90,7 @@ async function call(action,payload={},c=cfg()){
   return j;
 }
 function errText(e){const m=String(e&&e.message||e);
-  return m==='bad_key'?'Sync stopped: the app key doesn’t match. Check it in Settings.':m==='not_set_up'?'Sync stopped: run Receipt Book → Set up sync in the sheet.':m==='not_web_app'?'Sync stopped: check the web app URL and that access is set to Anyone.':m==='network'?'Sync paused. Will retry':'Sync paused: '+m}
+  return m==='bad_key'?'Sync stopped: the app key doesn’t match. Check it in Settings.':m==='not_set_up'?'Sync stopped: run Receipt Book → Set up sync in the sheet.':m==='not_web_app'?'Sync stopped: check the web app URL and that access is set to Anyone.':m==='network'?(navigator.onLine?'Sync stopped: can’t reach the sheet’s web app. Check the URL and that access is set to Anyone.':'Sync paused. Will retry'):'Sync stopped: the sheet script said “'+m+'”'}
 function scheduleSync(ms=1500){clearTimeout(sTimer);if(linked())sTimer=setTimeout(sync,ms)}
 const b64=b=>toData(b).then(d=>d.slice(d.indexOf(',')+1));
 async function sync(){
@@ -99,8 +99,10 @@ async function sync(){
   syncing=true;status('Syncing…');
   const c=cfg();
   try{
+    let photoErr=null;
     for(const p of (await idb.all('photos')).filter(p=>!p.up&&p.blob)){
-      await call('photo_put',{id:p.id,b64:await b64(p.blob)},c);p.up=true;await idb.put('photos',p);
+      try{await call('photo_put',{id:p.id,b64:await b64(p.blob)},c);p.up=true;await idb.put('photos',p)}
+      catch(e){if(/bad_key|not_set_up|not_web_app/.test(e.message))throw e;photoErr=e}
     }
     const dirty=(await idb.all('recs')).filter(r=>r.dirty);
     for(let i=0;i<dirty.length;i+=100){
@@ -122,7 +124,7 @@ async function sync(){
     }
     await idb.put('meta',Number(cursor)||since,key);
     await cleanPhotos(c);
-    lastSync=Date.now();syncErr='';if(changed)render();
+    lastSync=Date.now();syncErr=photoErr?'Synced, but photos didn’t upload: '+(photoErr.message==='network'?'connection problem':photoErr.message):'';if(changed)render();
   }catch(e){syncErr=errText(e)}
   finally{syncing=false;baseStatus();if(again){again=false;scheduleSync(500)}}
 }
@@ -451,7 +453,7 @@ document.addEventListener('click',ev=>{
     case 'prev':go(-1);break;case 'next':go(1);break;
     case 'todayBtn':S.cur=todayS();S.q='';$('#q').value='';render();break;
     case 'addBtn':case 'addBtn2':openEd(null);break;
-    case 'setBtn':opts($('#sCur'),CURS.includes(S.set.currency)?CURS:[S.set.currency,...CURS],S.set.currency);$('#sBud').value=num(S.set.budget)||'';sMsg('');syncUI();$('#st').showModal();break;
+    case 'setBtn':opts($('#sCur'),CURS.includes(S.set.currency)?CURS:[S.set.currency,...CURS],S.set.currency);$('#sBud').value=num(S.set.budget)||'';sMsg(syncErr,!!syncErr);syncUI();$('#st').showModal();break;
     case 'stClose':$('#st').close();break;
     case 'edClose':case 'edCancel':closeEd();break;
     case 'edDel':{const id=E&&E.id;closeEd();if(id)delExp(id);break}

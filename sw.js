@@ -1,5 +1,5 @@
 /* Receipt Book offline support. Change VERSION whenever you upload new app files. */
-const VERSION = 'rb-2026-11-24b';
+const VERSION = 'rb-2026-11-24c';
 const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'parse.js', 'manifest.webmanifest',
   'vendor/tesseract.min.js', 'icons/icon-192.png', 'icons/apple-touch-icon.png'];
 
