@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Receipt Book</title>
+<meta name="theme-color" content="#141210">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Receipts">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="brand"><h1>Receipt Book</h1><span id="status">Opening your book…</span></div>
+  <div class="tools">
+    <input id="q" type="search" placeholder="Search shops, items, memos" aria-label="Search">
+    <button id="setBtn" class="ghost" type="button">Settings</button>
+    <button id="addBtn" class="ghost" type="button">Add by hand</button>
+    <label class="btn primary scan" for="file">Scan receipt</label>
+  </div>
+</div></header>
+<input id="file" type="file" accept="image/*" hidden>
+<input id="more" type="file" accept="image/*" multiple hidden>
+<input id="bkFile" type="file" accept="application/json,.json" hidden>
+<nav class="bar"><div class="wrap">
+  <div class="seg" role="group" aria-label="Period"><button type="button" data-v="day">Day</button><button type="button" data-v="week">Week</button><button type="button" data-v="month">Month</button></div>
+  <div class="nav"><button type="button" class="arrow" id="prev" aria-label="Previous">‹</button><b id="range"></b><button type="button" class="arrow" id="next" aria-label="Next">›</button><button type="button" class="ghost sm" id="todayBtn">Today</button></div>
+</div></nav>
+<main class="wrap grid">
+  <section class="panel sum" id="sum" aria-live="polite"></section>
+  <section id="slips"></section>
+</main>
+<div class="fab"><button type="button" class="ghost" id="addBtn2">Add by hand</button><label class="btn primary" for="file">Scan receipt</label></div>
+
+<dialog id="ed"><form id="edf" class="dlg" novalidate>
+  <div class="dh"><h2 id="edTitle">New expense</h2><button type="button" class="x" id="edClose" aria-label="Close">×</button></div>
+  <div id="edMsg" class="msg" hidden></div>
+  <div class="bar2" id="ocrBar" hidden><i></i></div>
+  <div class="phs" id="edPhotos"></div>
+  <details class="ocr" id="ocrBox" hidden><summary>Text found on the receipt</summary><pre id="ocrText"></pre></details>
+  <div class="r2">
+    <label class="fl">Shop or payee<input id="fMerchant" autocomplete="off"></label>
+    <label class="fl">Category<select id="fCat"></select></label>
+  </div>
+  <div class="r3">
+    <label class="fl">Date<input id="fDate" type="date"></label>
+    <label class="fl">Time<input id="fTime" type="time"></label>
+    <label class="fl">Paid with<select id="fPay"></select></label>
+  </div>
+  <div class="r3">
+    <label class="fl">Total paid<input id="fTotal" inputmode="decimal" autocomplete="off"></label>
+    <label class="fl">Currency<input id="fCur" maxlength="3" autocomplete="off" style="text-transform:uppercase"></label>
+    <label class="fl">Tax included<input id="fTax" inputmode="decimal" autocomplete="off"></label>
+  </div>
+  <label class="fl" id="convWrap" hidden>Counts as, in <span id="homeCur"></span><input id="fConv" inputmode="decimal" autocomplete="off"></label>
+  <fieldset><legend>Items</legend>
+    <div class="ih"><span>Item</span><span>Qty</span><span>Price</span><span></span></div>
+    <div id="items"></div>
+    <button type="button" class="ghost sm" id="addItem">Add item</button>
+    <p class="isum mute" id="isum"></p>
+  </fieldset>
+  <label class="fl">Note<textarea id="fNote" rows="2" placeholder="Who it was for, warranty, return deadline…"></textarea></label>
+  <p class="warn" id="dup" hidden></p>
+  <div class="df"><button type="button" class="ghost danger" id="edDel">Delete</button><button type="button" class="ghost" id="reread" hidden>Read photo again</button><span class="sp"></span><button type="button" class="ghost" id="edCancel">Cancel</button><button type="submit" class="primary" id="edSave">Save to memo</button></div>
+</form></dialog>
+
+<dialog id="st"><div class="dlg">
+  <div class="dh"><h2>Settings</h2><button type="button" class="x" id="stClose" aria-label="Close">×</button></div>
+  <form id="stf">
+    <div class="r2">
+      <label class="fl">Home currency<select id="sCur"></select></label>
+      <label class="fl">Monthly budget<input id="sBud" inputmode="decimal" placeholder="Empty for no budget"></label>
+    </div>
+    <button type="submit" class="primary sm">Save</button>
+  </form>
+
+  <div class="sec">
+    <h3>Sync with Google Sheet</h3>
+    <p class="note">Keeps your expenses, memos and photos in your own Google Sheet and Drive, and in step across your devices. The setup guide (README) shows where to find these two values.</p>
+    <div id="cfgBox">
+      <label class="fl">Web app URL<input id="sUrl" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+      <label class="fl">App key<input id="sKey" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+      <button type="button" class="primary sm" id="sConnect">Link sheet</button>
+    </div>
+    <div id="inBox" hidden>
+      <p class="note">This device syncs with your Google Sheet. You can also add or change expenses and memos in the sheet itself; the app picks them up.</p>
+      <div class="df"><button type="button" class="primary sm" id="sSync">Sync now</button><button type="button" class="ghost sm" id="sForget">Unlink</button></div>
+    </div>
+    <p class="stat" id="sMsg"></p>
+  </div>
+
+  <div class="sec">
+    <h3>Backup</h3>
+    <p class="note">A single file with every expense, memo and photo. Restoring merges it into this device.</p>
+    <div class="df"><button type="button" class="ghost sm" id="bkDown">Download backup</button><label class="btn ghost sm" for="bkFile">Restore from backup</label></div>
+  </div>
+</div></dialog>
+
+<dialog id="lb"><button type="button" class="x" id="lbClose" aria-label="Close">×</button><img id="lbImg" alt="Receipt photo"></dialog>
+<div id="toast" hidden role="status"><span id="tMsg"></span><button type="button" id="tBtn" hidden>Undo</button></div>
+
+<script src="vendor/tesseract.min.js"></script>
+<script src="parse.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
